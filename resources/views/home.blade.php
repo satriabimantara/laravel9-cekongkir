@@ -1,9 +1,5 @@
 @extends('layouts.app')
 
-@section('scripts')
-<script src="{{ mix('js/ongkir.js') }}" defer></script>
-@endsection
-
 @section('content')
 <div class="container">
     <div class="starter-template">
