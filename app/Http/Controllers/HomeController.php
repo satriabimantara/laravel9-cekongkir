@@ -34,18 +34,31 @@ class HomeController extends Controller
     public function store(Request $request)
     {
         $couriers = $request->courier;
-        $results = [];
-        foreach ($couriers as $courier) {
-            $ongkir = RajaOngkir::ongkosKirim([
-                'origin'        => $request->city_origin,     // ID kota/kabupaten asal
-                'destination'   => $request->city_destination,      // ID kota/kabupaten tujuan
-                'weight'        => 1300,    // berat barang dalam gram
-                'courier'       => 'jne'    // kode kurir pengiriman: ['jne', 'tiki', 'pos'] untuk starter
-            ])->get();
-            $results[] = $ongkir;
+        $data = [
+            'origin' => $this->getCity($request->city_origin)->code,
+            'destination' => $this->getCity($request->city_destination)->code,
+        ];
+        if ($couriers) {
+            $data = [
+                'origin' => $this->getCity($request->city_origin),
+                'destination' => $this->getCity($request->city_destination),
+                'weight' => 1300,
+                'result' => [],
+            ];
+            foreach ($couriers as $courier) {
+                $ongkir = RajaOngkir::ongkosKirim([
+                    'origin' => $data['origin']->code,
+                    'destination' => $data['destination']->code,
+                    'weight' => $data['weight'],
+                    'courier' => $courier
+                ])->get();
+                $data['result'][] = $ongkir;
+            }
+            return view('cost')->with($data);
         }
-        return $results;
+        return redirect()->back();
     }
+
 
     public function getProvince()
     {
@@ -55,6 +68,10 @@ class HomeController extends Controller
     public function getCourier()
     {
         return Courier::all();
+    }
+    public function getCity($code)
+    {
+        return City::where('code', $code)->first();
     }
     public function getCities($provinceId)
     {
@@ -67,19 +84,19 @@ class HomeController extends Controller
 
         if (empty($search)) {
             $cities = City::orderBy('title', 'asc')
-                ->select('id', 'title')
+                ->select('id', 'title', 'code')
                 ->limit(5)->get();
         } else {
             $cities = City::orderBy('title', 'asc')
                 ->where('title', 'like', '%' . $search . '%')
-                ->select('id', 'title')
+                ->select('id', 'title', 'code')
                 ->limit(5)->get();
         }
 
         $response  = [];
 
         foreach ($cities as $city) {
-            $response[] = ['id' => $city->id, 'text' => $city->title];
+            $response[] = ['id' => $city->code, 'text' => $city->title];
         }
 
         return json_encode($response);
